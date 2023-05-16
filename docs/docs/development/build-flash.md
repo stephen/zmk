@@ -26,12 +26,12 @@ From here on, building and flashing ZMK should all be done from the `app/` subdi
 cd app
 ```
 
-To build for your particular keyboard, the behaviour varies slightly depending on if you are building for a keyboard with
+To build for your particular keyboard, the behavior varies slightly depending on if you are building for a keyboard with
 an onboard MCU, or one that uses an MCU board addon.
 
 ### Keyboard (Shield) + MCU Board
 
-ZMK treats keyboards that take an MCU addon board as [shields](https://docs.zephyrproject.org/2.3.0/guides/porting/shields.html), and treats the smaller MCU board as the true [board](https://docs.zephyrproject.org/2.3.0/guides/porting/board_porting.html)
+ZMK treats keyboards that take an MCU addon board as [shields](https://docs.zephyrproject.org/2.5.0/guides/porting/shields.html), and treats the smaller MCU board as the true [board](https://docs.zephyrproject.org/2.5.0/guides/porting/board_porting.html)
 
 Given the following:
 
@@ -47,7 +47,7 @@ west build -b proton_c -- -DSHIELD=kyria_left
 
 ### Keyboard With Onboard MCU
 
-Keyboards with onboard MCU chips are simply treated as the [board](https://docs.zephyrproject.org/2.3.0/guides/porting/board_porting.html) as far as Zephyr™ is concerned.
+Keyboards with onboard MCU chips are simply treated as the [board](https://docs.zephyrproject.org/2.5.0/guides/porting/board_porting.html) as far as Zephyr™ is concerned.
 
 Given the following:
 
@@ -88,9 +88,13 @@ west build -d build/right -b nice_nano -- -DSHIELD=kyria_right
 
 This produces `left` and `right` subfolders under the `build` directory and two separate .uf2 files. For future work on a specific half, use the `-d` parameter again to ensure you are building into the correct location.
 
+:::tip
+Build times can be significantly reduced after the initial build by omitting all build arguments except the build directory, e.g. `west build -d build/left`. The additional options and intermediate build outputs from your initial build are cached and reused for unchanged files.
+:::
+
 ### Building from `zmk-config` Folder
 
-Instead of building .uf2 files using the default keymap and config files, you can build directly from your [`zmk-config` folder](../user-setup#github-repo) by adding
+Instead of building .uf2 files using the default keymap and config files, you can build directly from your [`zmk-config` folder](../user-setup.md#github-repo) by adding
 `-DZMK_CONFIG="C:/the/absolute/path/config"` to your `west build` command. **Notice that this path should point to the folder labelled `config` within your `zmk-config` folder.**
 
 For instance, building kyria firmware from a user `myUser`'s `zmk-config` folder on Windows 10 may look something like this:
@@ -98,6 +102,10 @@ For instance, building kyria firmware from a user `myUser`'s `zmk-config` folder
 ```
 west build -b nice_nano -- -DSHIELD=kyria_left -DZMK_CONFIG="C:/Users/myUser/Documents/Github/zmk-config/config"
 ```
+
+:::caution
+The above command must still be invoked from the `zmk/app` directory as noted above, rather than the config directory. Otherwise, you will encounter errors such as `ERROR: source directory "." does not contain a CMakeLists.txt; is this really what you want to build?`. Alternatively you can add the `-s /path/to/zmk/app` flag to your `west` command.
+:::
 
 In order to make your `zmk-config` folder available when building within the VSCode Remote Container, you need to create a docker volume named `zmk-config`
 by binding it to the full path of your config directory. If you have run the VSCode Remote Container before, it is likely that docker has created this
@@ -107,7 +115,7 @@ volume automatically -- we need to delete the default volume before binding it t
 1. Remove all the containers that are not running via the command `docker container prune`. We need to remove the ZMK container before we can delete the default `zmk-config` volume referenced by it. If you do not want to delete all the containers that are not running, you can find the id of the ZMK container and use `docker rm` to delete that one only.
 1. Remove the default volume via the command `docker volume rm zmk-config`.
 
-Then you can bind the `zmk-config` volume to the correct path pointing to your local [zmk-config](./customization.md) folder:
+Then you can bind the `zmk-config` volume to the correct path pointing to your local [zmk-config](customization.md) folder:
 
 ```
 docker volume create --driver local -o o=bind -o type=none -o \
@@ -132,3 +140,23 @@ your board and run the following command to flash:
 ```
 west flash
 ```
+
+## Multi-CPU and Dual-Chip Bluetooth Boards
+
+Zephyr supports running the Bluetooth host and controller on separate processors. In such a configuration, ZMK always runs on the host processor, but you may need to build and flash separate firmware for the controller. Zephyr provides sample code which can be used as the controller firmware for Bluetooth HCI over [RPMsg](https://docs.zephyrproject.org/3.2.0/samples/bluetooth/hci_rpmsg/README.html), [SPI](https://docs.zephyrproject.org/3.2.0/samples/bluetooth/hci_spi/README.html), [UART](https://docs.zephyrproject.org/3.2.0/samples/bluetooth/hci_uart/README.html), and [USB](https://docs.zephyrproject.org/3.2.0/samples/bluetooth/hci_usb/README.html). See [Zephyr's Bluetooth Stack Architecture documentation](https://docs.zephyrproject.org/3.2.0/connectivity/bluetooth/bluetooth-arch.html) for more details.
+
+The following documentation shows how to build and flash ZMK for boards that use a dual-chip configuration.
+
+### nRF5340
+
+To build and flash the firmware for the nRF5340 development kit's network core, run the following command from the root of the ZMK repo:
+
+```sh
+cd zephyr/samples/bluetooth/hci_rpmsg
+west build -b nrf5340dk_nrf5340_cpunet
+west flash
+```
+
+You can then build and flash ZMK firmware using the normal steps described above. The network core's firmware only needs to be updated whenever ZMK upgrades to a new version of Zephyr.
+
+For a custom nRF5340-based board, you will need to define two Zephyr boards: one for the application core and one for the network core. The [nRF5340 DK's board definition](https://github.com/zephyrproject-rtos/zephyr/tree/main/boards/arm/nrf5340dk_nrf5340) can be used as reference. Replace `nrf5340dk_nrf5340_cpunet` with the name of your network core board.

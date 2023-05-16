@@ -6,9 +6,9 @@
 
 #define DT_DRV_COMPAT zmk_kscan_composite
 
-#include <device.h>
-#include <drivers/kscan.h>
-#include <logging/log.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/kscan.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #define MATRIX_NODE_ID DT_DRV_INST(0)
@@ -16,13 +16,13 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #define MATRIX_COLS DT_PROP(MATRIX_NODE_ID, columns)
 
 struct kscan_composite_child_config {
-    char *label;
+    const struct device *child;
     uint8_t row_offset;
     uint8_t column_offset;
 };
 
 #define CHILD_CONFIG(inst)                                                                         \
-    {.label = DT_LABEL(DT_PHANDLE(inst, kscan)),                                                   \
+    {.child = DEVICE_DT_GET(DT_PHANDLE(inst, kscan)),                                              \
      .row_offset = DT_PROP(inst, row_offset),                                                      \
      .column_offset = DT_PROP(inst, column_offset)},
 
@@ -41,7 +41,7 @@ static int kscan_composite_enable_callback(const struct device *dev) {
     for (int i = 0; i < ARRAY_SIZE(kscan_composite_children); i++) {
         const struct kscan_composite_child_config *cfg = &kscan_composite_children[i];
 
-        kscan_enable_callback(device_get_binding(cfg->label));
+        kscan_enable_callback(cfg->child);
     }
     return 0;
 }
@@ -50,7 +50,7 @@ static int kscan_composite_disable_callback(const struct device *dev) {
     for (int i = 0; i < ARRAY_SIZE(kscan_composite_children); i++) {
         const struct kscan_composite_child_config *cfg = &kscan_composite_children[i];
 
-        kscan_disable_callback(device_get_binding(cfg->label));
+        kscan_disable_callback(cfg->child);
     }
     return 0;
 }
@@ -58,13 +58,13 @@ static int kscan_composite_disable_callback(const struct device *dev) {
 static void kscan_composite_child_callback(const struct device *child_dev, uint32_t row,
                                            uint32_t column, bool pressed) {
     // TODO: Ideally we can get this passed into our callback!
-    const struct device *dev = device_get_binding(DT_INST_LABEL(0));
+    const struct device *dev = DEVICE_DT_GET(DT_DRV_INST(0));
     struct kscan_composite_data *data = dev->data;
 
     for (int i = 0; i < ARRAY_SIZE(kscan_composite_children); i++) {
         const struct kscan_composite_child_config *cfg = &kscan_composite_children[i];
 
-        if (device_get_binding(cfg->label) != child_dev) {
+        if (cfg->child != child_dev) {
             continue;
         }
 
@@ -82,7 +82,7 @@ static int kscan_composite_configure(const struct device *dev, kscan_callback_t 
     for (int i = 0; i < ARRAY_SIZE(kscan_composite_children); i++) {
         const struct kscan_composite_child_config *cfg = &kscan_composite_children[i];
 
-        kscan_config(device_get_binding(cfg->label), &kscan_composite_child_callback);
+        kscan_config(cfg->child, &kscan_composite_child_callback);
     }
 
     data->callback = callback;
@@ -108,6 +108,5 @@ static const struct kscan_composite_config kscan_composite_config = {};
 
 static struct kscan_composite_data kscan_composite_data;
 
-DEVICE_AND_API_INIT(kscan_composite, DT_INST_LABEL(0), kscan_composite_init, &kscan_composite_data,
-                    &kscan_composite_config, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,
-                    &mock_driver_api);
+DEVICE_DT_INST_DEFINE(0, kscan_composite_init, NULL, &kscan_composite_data, &kscan_composite_config,
+                      APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, &mock_driver_api);

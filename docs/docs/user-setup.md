@@ -68,21 +68,21 @@ values={[
 <TabItem value="curl">
 
 ```
-bash -c "$(curl -fsSL https://zmkfirmware.dev/setup.sh)"
+bash -c "$(curl -fsSL https://zmk.dev/setup.sh)"
 ```
 
 </TabItem>
 <TabItem value="wget">
 
 ```
-bash -c "$(wget https://zmkfirmware.dev/setup.sh -O -)" '' --wget
+bash -c "$(wget https://zmk.dev/setup.sh -O -)" '' --wget
 ```
 
 </TabItem>
 <TabItem value="PowerShell">
 
 ```
-iex ((New-Object System.Net.WebClient).DownloadString('https://zmkfirmware.dev/setup.ps1'))
+powershell -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://zmk.dev/setup.ps1'))"
 ```
 
 </TabItem>
@@ -105,7 +105,7 @@ Pick an MCU board:
 :::note
 If you are building firmware for a new keyboard shield that is not included in the built-in
 list of shields, you can choose any shield from the list that is similar to yours to generate the repository,
-and edit / add necessary files according to the [guide for adding new keyboard shield](./development/new-shield).
+and edit / add necessary files according to the [guide for adding new keyboard shield](development/new-shield.md).
 :::
 
 When prompted, enter the number for the corresponding keyboard shield you would like to target:
@@ -142,6 +142,10 @@ GitHub Repo: https://github.com/petejohanson/zmk-config.git
 ```
 
 Only the GitHub username is required; if you are happy with the defaults offered in the square brackets, you can simply hit `Enter`.
+
+:::note
+If you are using SSH keys for git push, change GitHub Repo field to the SSH scheme, e.g. `git@github.com:petejohanson/zmk-config.git`.
+:::
 
 ### Confirming Selections
 
@@ -189,14 +193,31 @@ To flash the firmware, first put your board into bootloader mode by double click
 or the one that is part of your keyboard). The controller should appear in your OS as a new USB storage device.
 
 Once this happens, copy the correct UF2 file (e.g. left or right if working on a split), and paste it onto the root of that USB mass
-storage device. Once the flash is complete, the controller should automatically restart, and load your newfly flashed firmware.
+storage device. Once the flash is complete, the controller should automatically restart, and load your newly flashed firmware. It is
+recommended that you test your keyboard works over USB first to rule out hardware issues, before trying to connect to it wirelessly.
+
+:::caution Split keyboards
+
+For split keyboards, only the central half (typically the left side) will send keyboard outputs over USB or advertise to other devices
+over bluetooth. Peripheral half will only send keystrokes to the central once they are paired and connected. For this reason it is
+recommended to test the left half of a split keyboard first.
+
+:::
 
 ## Wirelessly Connecting Your Keyboard
 
-ZMK will automatically advertise itself as connectable if it is not currently connected to a device. You should be able to see your keyboard from the bluetooth scanning view of your laptop or phone / tablet. It is reported by some users that the connections with Android / iOS devices are generally smoother than with laptops, so if you have trouble connecting, you could try to connect from your phone or tablet first to eliminate any potential hardware issues.
+ZMK will automatically advertise itself as connectable if it is not currently connected to a device. You should be able to see your keyboard from the bluetooth scanning view of your computer or phone / tablet. It is reported by some users that the connections with Android / iOS devices are generally smoother than with laptops, so if you have trouble connecting, you could try to connect from your phone or tablet first to eliminate any potential hardware issues with bluetooth receivers.
 
-ZMK support multiple BLE “profiles”, which allows you to connect to and switch among multiple devices. Please refer to the [Bluetooth behavior](behaviors/bluetooth) section for detailed explanations of how to use them.
+ZMK supports multiple BLE “profiles”, which allows you to connect to and switch among multiple devices. Please refer to the [Bluetooth behavior](behaviors/bluetooth.md) section for detailed explanations on how to use them. If you don't make use of the mentioned behaviors you will have issues pairing your keyboard to other devices.
 
 ### Connecting Split Keyboard Halves
 
 For split keyboards, after flashing each half individually you can connect them together by resetting them at the same time. Within a few seconds of resetting, both halves should automatically connect to each other.
+
+:::note
+
+If you have issues connecting the halves, make sure that both sides are getting powered properly through USB or batteries, then follow the
+[recommended troubleshooting procedure](troubleshooting.md#split-keyboard-halves-unable-to-pair). This is typically necessary if you
+swapped firmware sides between controllers, like flashing left side firmware to the same controller after flashing the right, or vice versa.
+
+:::

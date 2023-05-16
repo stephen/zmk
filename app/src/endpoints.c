@@ -4,20 +4,21 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <init.h>
-#include <settings/settings.h>
+#include <zephyr/init.h>
+#include <zephyr/settings/settings.h>
 
 #include <zmk/ble.h>
 #include <zmk/endpoints.h>
 #include <zmk/hid.h>
 #include <dt-bindings/zmk/hid_usage_pages.h>
-#include <zmk/usb.h>
+#include <zmk/usb_hid.h>
 #include <zmk/hog.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/usb_conn_state_changed.h>
+#include <zmk/events/endpoint_selection_changed.h>
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #define DEFAULT_ENDPOINT                                                                           \
@@ -34,13 +35,12 @@ static void endpoints_save_preferred_work(struct k_work *work) {
     settings_save_one("endpoints/preferred", &preferred_endpoint, sizeof(preferred_endpoint));
 }
 
-static struct k_delayed_work endpoints_save_work;
+static struct k_work_delayable endpoints_save_work;
 #endif
 
 static int endpoints_save_preferred() {
 #if IS_ENABLED(CONFIG_SETTINGS)
-    k_delayed_work_cancel(&endpoints_save_work);
-    return k_delayed_work_submit(&endpoints_save_work, K_MSEC(CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE));
+    return k_work_reschedule(&endpoints_save_work, K_MSEC(CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE));
 #else
     return 0;
 #endif
@@ -148,7 +148,7 @@ int zmk_endpoints_send_report(uint16_t usage_page) {
 
 static int endpoints_handle_set(const char *name, size_t len, settings_read_cb read_cb,
                                 void *cb_arg) {
-    LOG_DBG("Setting endpoint value %s", log_strdup(name));
+    LOG_DBG("Setting endpoint value %s", name);
 
     if (settings_name_steq(name, "preferred", NULL)) {
         if (len != sizeof(enum zmk_endpoint)) {
@@ -181,7 +181,7 @@ static int zmk_endpoints_init(const struct device *_arg) {
         return err;
     }
 
-    k_delayed_work_init(&endpoints_save_work, endpoints_save_preferred_work);
+    k_work_init_delayable(&endpoints_save_work, endpoints_save_preferred_work);
 
     settings_load_subtree("endpoints");
 #endif
@@ -242,6 +242,9 @@ static void update_current_endpoint() {
 
         current_endpoint = new_endpoint;
         LOG_INF("Endpoint changed: %d", current_endpoint);
+
+        ZMK_EVENT_RAISE(new_zmk_endpoint_selection_changed(
+            (struct zmk_endpoint_selection_changed){.endpoint = current_endpoint}));
     }
 }
 

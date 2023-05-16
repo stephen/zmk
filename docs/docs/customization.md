@@ -1,18 +1,18 @@
 ---
-title: Customizing ZMK/`zmk-config` folders
+title: Customizing ZMK/zmk-config folders
 sidebar_label: Customizing ZMK
 ---
 
 After verifying you can successfully flash the default firmware, you will probably want to begin customizing your keymap and other keyboard options.
-[In the initial setup tutorial](user-setup), you created a Github repository called `zmk-config`. This repository is a discrete filesystem which works
+[In the initial setup tutorial](user-setup.md), you created a Github repository called `zmk-config`. This repository is a discrete filesystem which works
 with the main `zmk` firmware repository to build your desired firmware. The main advantage of a discrete configuration folder is ensuring that the
 working components of ZMK are kept separate from your personal keyboard settings, reducing the amount of file manipulation in the configuration process.
 This makes flashing ZMK to your keyboard much easier, especially because you don't need to keep an up-to-date copy of zmk on your computer at all times.
 
-On default `zmk-config` folder should contain two files:
+By default, the `zmk-config` folder should contain two files:
 
 - `<shield>.conf`
-- `<shield>`.keymap
+- `<shield>.keymap`
 
 However, your config folder can also be modified to include a `boards/` directory for keymaps and configurations for multiple boards/shields
 outside of the default keyboard setting definitions.
@@ -23,10 +23,12 @@ The setup script creates a `config/<shield>.conf` file that allows you to add ad
 control what features and options are built into your firmware. Opening that file with your text editor will allow you to see the
 various config settings that can be commented/uncommented to modify how your firmware is built.
 
+Refer to the [Configuration](/docs/config) documentation for more details on this file.
+
 ## Keymap
 
 Once you have the basic user config completed, you can find the keymap file in `config/<shield>.keymap` and customize from there.
-Refer to the [Keymap](/docs/features/keymaps) documentation to learn more.
+Refer to the [Keymap](features/keymaps.md) documentation to learn more.
 
 ## Publishing
 
@@ -39,7 +41,7 @@ If you need to, a review of [Learn The Basics Of Git In Under 10 Minutes](https:
 
 ## Building from a local `zmk` fork using `zmk-config`
 
-[As outlined here](development/build-flash), firmware comes in the form of .uf2 files, which can be built locally using the command `west build`. Normally,
+[As outlined here](development/build-flash.md), firmware comes in the form of .uf2 files, which can be built locally using the command `west build`. Normally,
 `west build` will default to using the in-tree .keymap and .conf files found in your local copy of the `zmk` repository. However, you can append the command, `-DZMK_CONFIG="C:/the/absolute/path/config"` to `west build` in order to use the contents of your `zmk-config` folder instead of the
 default keyboard settings.
 **Notice that this path should point to the folder labelled `config` within your `zmk-config` folder.**
@@ -55,4 +57,29 @@ west build -b nice_nano -- -DSHIELD=kyria_left -DZMK_CONFIG="C:/Users/myUser/Doc
 For normal keyboards, follow the same flashing instructions as before to flash your updated firmware.
 
 For split keyboards, only the central (left) side will need to be reflashed if you are just updating your keymap.
-More troubleshooting information for split keyboards can be found [here](troubleshooting#split-keyboard-halves-unable-to-pair).
+More troubleshooting information for split keyboards can be found [here](troubleshooting.md#split-keyboard-halves-unable-to-pair).
+
+## Building Additional Keyboards
+
+You can build additional keyboards with GitHub actions by appending them to `build.yml` in your `zmk-config` folder. For instance assume that we have set up a Corne shield with nice!nano during [initial setup](user-setup.md) and we want to add a Lily58 shield with nice!nano v2. The following is an example `build.yaml` file that would accomplish that:
+
+```
+include:
+  - board: nice_nano
+    shield: corne_left
+  - board: nice_nano
+    shield: corne_right
+  - board: nice_nano_v2
+    shield: lily58_left
+  - board: nice_nano_v2
+    shield: lily58_right
+```
+
+In addition to updating `build.yaml`, Lily58's shield files should also be added into the `config` sub-folder inside `zmk-config` together with your Corne files, e.g.:
+
+```
+corne.conf
+corne.keymap
+lily58.conf
+lily58.keymap
+```

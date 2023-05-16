@@ -7,18 +7,18 @@
 #include <dt-bindings/zmk/reset.h>
 
 / {
-	behaviors {
-		/omit-if-no-ref/ reset: behavior_reset {
-			compatible = "zmk,behavior-reset";
-			label = "RESET";
-			#binding-cells = <0>;
-		};
+    behaviors {
+        sys_reset: behavior_reset {
+            compatible = "zmk,behavior-reset";
+            label = "SYSRESET";
+            #binding-cells = <0>;
+        };
 
-		/omit-if-no-ref/ bootloader: behavior_reset_dfu {
-			compatible = "zmk,behavior-reset";
-			label = "BOOTLOADER_RESET";
-			type = <RST_UF2>;
-			#binding-cells = <0>;
-		};
-	};
+        bootloader: behavior_reset_dfu {
+            compatible = "zmk,behavior-reset";
+            label = "BOOTLOAD";
+            type = <RST_UF2>;
+            #binding-cells = <0>;
+        };
+    };
 };
